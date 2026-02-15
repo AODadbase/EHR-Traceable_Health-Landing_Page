@@ -1,0 +1,5 @@
+{
+  "name": "Traceable Health",
+  "description": "Turning static PDF patient records into searchable, structured clinical summaries.",
+  "requestFramePermissions": []
+}
