@@ -43,7 +43,7 @@ const missionStats = [
 
 export const About: React.FC = () => {
   return (
-    <section id="about" className="py-24 bg-slate-50 border-t border-slate-200 overflow-hidden relative scroll-mt-28">
+    <section id="about" className="py-24 bg-slate-50 border-t border-slate-200 overflow-hidden relative scroll-mt-16">
       {/* Decorative Background Elements */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
         <div className="absolute top-[10%] -left-[5%] w-96 h-96 bg-blue-100/50 rounded-full blur-3xl"></div>

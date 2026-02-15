@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { FileSearch, BrainCircuit, ChevronRight } from 'lucide-react';
+import { FileSearch, BrainCircuit, Download } from 'lucide-react';
 
 const GeometricSphere: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -226,13 +226,9 @@ export const Hero: React.FC = () => {
           transition={{ duration: 0.6, delay: 0.3 }}
           className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto relative z-20"
         >
-          <a href="#demo" className="px-8 py-4 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20 flex items-center justify-center gap-2 group">
-            See the Pipeline Live
-            <BrainCircuit size={18} className="group-hover:rotate-12 transition-transform" />
-          </a>
-          <a href="#solution" className="px-8 py-4 bg-white text-slate-700 border border-slate-200 rounded-lg font-semibold text-sm hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm flex items-center justify-center gap-2">
-            How It Works
-            <ChevronRight size={18} />
+          <a href="/download.txt" download className="px-8 py-4 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20 flex items-center justify-center gap-2 group">
+            Download
+            <Download size={18} className="group-hover:translate-y-0.5 transition-transform" />
           </a>
         </motion.div>
 

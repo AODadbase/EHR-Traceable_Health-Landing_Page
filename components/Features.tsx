@@ -31,7 +31,7 @@ export const Features: React.FC = () => {
   return (
     <div className="bg-white">
       {/* Section 1: The Problem (Current Reality) */}
-      <section id="problem" className="py-20 bg-slate-50 scroll-mt-28">
+      <section id="problem" className="py-20 bg-slate-50 scroll-mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
@@ -63,7 +63,7 @@ export const Features: React.FC = () => {
       </section>
 
       {/* Section 2: How It Works */}
-      <section id="solution" className="py-24 scroll-mt-28">
+      <section id="solution" className="py-24 scroll-mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-base text-blue-600 font-semibold tracking-wide uppercase">How Traceable Health Works</h2>
