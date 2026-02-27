@@ -105,7 +105,7 @@ export const Header: React.FC = () => {
           onClick={scrollToTop}
           className={`flex items-center gap-2 px-3 py-1.5 rounded-2xl transition-all duration-500 group ${
             activeSection === 'hero'
-              ? isDark ? 'bg-purple-600 shadow-md shadow-purple-500/30' : 'bg-blue-600 shadow-md'
+              ? isDark ? 'bg-purple-900 shadow-md shadow-purple-900/50' : 'bg-blue-600 shadow-md'
               : isDark ? 'hover:bg-slate-800' : 'hover:bg-blue-50'
           }`}
         >
