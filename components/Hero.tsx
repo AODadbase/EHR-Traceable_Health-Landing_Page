@@ -145,8 +145,11 @@ const GeometricSphere: React.FC = () => {
             const alpha = 1 - dist / connectionDistance;
 
             if (dark) {
-              const hue = ((i + j) * 3 + frameCount * 0.5) % 360;
-              ctx.strokeStyle = `hsla(${hue}, 80%, 60%, ${alpha * 0.4})`;
+              // Deep color palette: cycle through purples, magentas, crimsons, deep blues
+              const baseHue = ((i + j) * 3 + frameCount * 0.15) % 360;
+              // Remap to darker range: skip greens/yellows, favor 240-360 (blue-purple-magenta-red)
+              const hue = 240 + (baseHue / 360) * 160; // range 240-400 (wraps to 40), deep tones
+              ctx.strokeStyle = `hsla(${hue % 360}, 70%, 40%, ${alpha * 0.5})`;
             } else {
               ctx.strokeStyle = `rgba(59, 130, 246, ${alpha * 0.3})`;
             }
@@ -163,8 +166,9 @@ const GeometricSphere: React.FC = () => {
         ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
 
         if (dark) {
-          const hue = (i * 7 + frameCount * 0.8) % 360;
-          ctx.fillStyle = `hsla(${hue}, 85%, 65%, 0.7)`;
+          const baseHue = (i * 7 + frameCount * 0.2) % 360;
+          const hue = 240 + (baseHue / 360) * 160;
+          ctx.fillStyle = `hsla(${hue % 360}, 75%, 45%, 0.8)`;
         } else {
           ctx.fillStyle = `rgba(37, 99, 235, 0.5)`;
         }
