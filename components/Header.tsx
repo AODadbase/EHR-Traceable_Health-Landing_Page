@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { FileText, Mail } from 'lucide-react';
+import { FileText, Mail, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useTheme } from '../contexts/ThemeContext';
 
 export const Header: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -9,26 +10,22 @@ export const Header: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const isLandingPage = location.pathname === '/';
+  const { isDark, toggleTheme } = useTheme();
 
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
 
-      // Improved Scroll Spy Logic
-      // Instead of checking if a section fully contains a specific range,
-      // we check which section is currently under a "reading line" (approx 30% down the viewport).
-      // This prevents "dead zones" between sections where the highlight might reset.
       const sections = ['hero', 'problem', 'solution', 'demo', 'about'];
       const threshold = window.innerHeight * 0.3;
-      
-      let newActiveSection = activeSection; // Default to keeping current if no match (prevents flickering)
+
+      let newActiveSection = activeSection;
       let foundMatch = false;
 
       for (const section of sections) {
         const element = document.getElementById(section);
         if (element) {
           const rect = element.getBoundingClientRect();
-          // Check if the reading line falls within this section
           if (rect.top <= threshold && rect.bottom > threshold) {
             newActiveSection = section;
             foundMatch = true;
@@ -37,21 +34,17 @@ export const Header: React.FC = () => {
         }
       }
 
-      // Fallback: If at the very top of the page, force hero
       if (window.scrollY < 50) {
         newActiveSection = 'hero';
       } else if (!foundMatch && (window.innerHeight + window.scrollY) >= document.body.offsetHeight - 50) {
-        // Fallback: If at very bottom, force last section
         newActiveSection = 'about';
-      } else if (foundMatch) {
-         // Only update if we found a specific section match to avoid random resets
       }
 
       setActiveSection(newActiveSection);
     };
 
     window.addEventListener('scroll', handleScroll);
-    handleScroll(); // Init check
+    handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
   }, [activeSection]);
 
@@ -65,11 +58,11 @@ export const Header: React.FC = () => {
   const getLinkClasses = (id: string) => {
     const isActive = activeSection === id;
     const baseClasses = "px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ease-in-out relative overflow-hidden";
-    // Active: Static Blue Background
-    const activeClasses = "bg-blue-600 shadow-lg"; 
-    const inactiveClasses = "text-slate-600 hover:text-blue-600 hover:bg-blue-50";
-    
-    return `${baseClasses} ${isActive ? activeClasses : inactiveClasses}`;
+
+    if (isActive) {
+      return `${baseClasses} ${isDark ? 'bg-purple-600 shadow-lg shadow-purple-500/30' : 'bg-blue-600 shadow-lg'}`;
+    }
+    return `${baseClasses} ${isDark ? 'text-slate-300 hover:text-purple-400 hover:bg-slate-700/50' : 'text-slate-600 hover:text-blue-600 hover:bg-blue-50'}`;
   };
 
   const getLabelClasses = (id: string) => {
@@ -97,27 +90,47 @@ export const Header: React.FC = () => {
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? 'bg-white/90 backdrop-blur-md shadow-sm py-3' : 'bg-transparent py-5'
+        scrolled
+          ? isDark
+            ? 'bg-slate-900/90 backdrop-blur-md shadow-sm shadow-slate-800/50 py-3'
+            : 'bg-white/90 backdrop-blur-md shadow-sm py-3'
+          : 'bg-transparent py-5'
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative flex items-center justify-between">
-        
-        {/* Logo Section - Acts as Home Link */}
-        <a 
-          href="#hero" 
+
+        {/* Logo Section */}
+        <a
+          href="#hero"
           onClick={scrollToTop}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-2xl transition-all duration-500 group ${activeSection === 'hero' ? 'bg-blue-600 shadow-md' : 'hover:bg-blue-50'}`}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-2xl transition-all duration-500 group ${
+            activeSection === 'hero'
+              ? isDark ? 'bg-purple-600 shadow-md shadow-purple-500/30' : 'bg-blue-600 shadow-md'
+              : isDark ? 'hover:bg-slate-800' : 'hover:bg-blue-50'
+          }`}
         >
-          <div className={`p-2 rounded-lg transition-colors duration-500 ${activeSection === 'hero' ? 'bg-white text-blue-600' : 'bg-blue-600 text-white shadow-md shadow-blue-500/40'}`}>
+          <div className={`p-2 rounded-lg transition-colors duration-500 ${
+            activeSection === 'hero'
+              ? isDark ? 'bg-white text-purple-600' : 'bg-white text-blue-600'
+              : isDark ? 'bg-purple-600 text-white shadow-md shadow-purple-500/40' : 'bg-blue-600 text-white shadow-md shadow-blue-500/40'
+          }`}>
             <FileText size={24} />
           </div>
-          <span className={`text-xl font-bold tracking-tight transition-all duration-300 ${activeSection === 'hero' ? 'animate-text-flow' : 'text-slate-900 group-hover:text-blue-700'}`}>
+          <span className={`text-xl font-bold tracking-tight transition-all duration-300 ${
+            activeSection === 'hero'
+              ? 'animate-text-flow'
+              : isDark ? 'text-slate-100 group-hover:text-purple-400' : 'text-slate-900 group-hover:text-blue-700'
+          }`}>
             Traceable Health
           </span>
         </a>
 
         {/* Centered Navigation */}
-        <nav className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 items-center gap-1 bg-white/60 backdrop-blur-md px-2 py-1.5 rounded-full border border-slate-200/50 shadow-sm">
+        <nav className={`hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 items-center gap-1 backdrop-blur-md px-2 py-1.5 rounded-full border shadow-sm ${
+          isDark
+            ? 'bg-slate-800/60 border-slate-700/50'
+            : 'bg-white/60 border-slate-200/50'
+        }`}>
           {navLinks.map((link) => (
             <a
               key={link.id}
@@ -132,16 +145,35 @@ export const Header: React.FC = () => {
           ))}
         </nav>
 
-        {/* Right Action Button */}
-        <motion.a
-          href="mailto:traceablehealth@gmail.com"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-full font-medium text-sm transition-colors shadow-lg shadow-slate-900/20"
-        >
-          <Mail size={16} />
-          <span className="hidden sm:inline">Contact Us</span>
-        </motion.a>
+        {/* Right Action Buttons */}
+        <div className="flex items-center gap-3">
+          {/* Eye Protection Toggle */}
+          <button
+            onClick={toggleTheme}
+            className={`p-2.5 rounded-full transition-all duration-300 ${
+              isDark
+                ? 'bg-purple-600/20 text-purple-400 hover:bg-purple-600/30'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+            aria-label={isDark ? 'Disable eye protection mode' : 'Enable eye protection mode'}
+          >
+            {isDark ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+
+          <motion.a
+            href="mailto:traceablehealth@gmail.com"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-medium text-sm transition-colors shadow-lg ${
+              isDark
+                ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-purple-600/20'
+                : 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/20'
+            }`}
+          >
+            <Mail size={16} />
+            <span className="hidden sm:inline">Contact Us</span>
+          </motion.a>
+        </div>
       </div>
     </header>
   );

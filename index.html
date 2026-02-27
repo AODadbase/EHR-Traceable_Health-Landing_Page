@@ -34,6 +34,31 @@
         color: transparent;
         animation: shimmer 3s linear infinite;
       }
+
+      /* Rainbow shimmer for dark mode nav items */
+      @keyframes rainbow-shimmer {
+        0%   { background-position: 200% center; }
+        100% { background-position: -200% center; }
+      }
+
+      .dark-mode .animate-text-flow {
+        background: linear-gradient(90deg, #ff0000, #ff8800, #ffff00, #00ff00, #0088ff, #8800ff, #ff0088, #ff0000);
+        background-size: 300% auto;
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        animation: rainbow-shimmer 4s linear infinite;
+      }
+
+      /* Rainbow text utility for headlines */
+      .rainbow-text {
+        background: linear-gradient(90deg, #ff0000, #ff8800, #ffff00, #00ff00, #0088ff, #8800ff, #ff0088, #ff0000);
+        background-size: 300% auto;
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        animation: rainbow-shimmer 4s linear infinite;
+      }
     </style>
   <script type="importmap">
 {
@@ -49,6 +74,15 @@
 <link rel="stylesheet" href="/index.css">
 </head>
   <body>
+    <script>
+      // Prevent flash of wrong theme on page load
+      (function() {
+        var theme = localStorage.getItem('th-eye-protection');
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark-mode');
+        }
+      })();
+    </script>
     <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>

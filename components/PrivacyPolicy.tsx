@@ -3,30 +3,39 @@ import { Link } from 'react-router-dom';
 import { Header } from './Header';
 import { Footer } from './Footer';
 import { ArrowLeft } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
 
 export const PrivacyPolicy: React.FC = () => {
+  const { isDark } = useTheme();
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 overflow-x-hidden selection:bg-blue-200 selection:text-blue-900">
+    <div className={`min-h-screen overflow-x-hidden transition-colors duration-300 ${
+      isDark
+        ? 'bg-slate-950 text-slate-100 selection:bg-purple-400 selection:text-purple-900'
+        : 'bg-white text-slate-900 selection:bg-blue-200 selection:text-blue-900'
+    }`}>
       <Header />
       <main className="pt-28 pb-16 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
         <Link
           to="/"
-          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors mb-8 text-sm font-medium"
+          className={`inline-flex items-center gap-2 transition-colors mb-8 text-sm font-medium ${
+            isDark ? 'text-purple-400 hover:text-purple-300' : 'text-blue-600 hover:text-blue-800'
+          }`}
         >
           <ArrowLeft size={16} />
           Back to Home
         </Link>
 
-        <h1 className="text-4xl font-bold text-blue-900 mb-8">Privacy Policy</h1>
-        <p className="text-slate-500 mb-12">Last updated: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+        <h1 className={`text-4xl font-bold mb-8 ${isDark ? 'text-slate-100' : 'text-blue-900'}`}>Privacy Policy</h1>
+        <p className={`mb-12 ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>Last updated: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
 
-        <div className="space-y-10 text-slate-700 leading-relaxed">
+        <div className={`space-y-10 leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
           <section>
-            <h2 className="text-2xl font-semibold text-blue-800 mb-4">1. Introduction</h2>
+            <h2 className={`text-2xl font-semibold mb-4 ${isDark ? 'text-slate-200' : 'text-blue-800'}`}>1. Introduction</h2>
             <p>
               Traceable Health Inc. ("we," "our," or "us") is committed to protecting your privacy.
               This Privacy Policy explains how we collect, use, disclose, and safeguard your information
@@ -35,7 +44,7 @@ export const PrivacyPolicy: React.FC = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-blue-800 mb-4">2. Information We Collect</h2>
+            <h2 className={`text-2xl font-semibold mb-4 ${isDark ? 'text-slate-200' : 'text-blue-800'}`}>2. Information We Collect</h2>
             <p className="mb-3">We may collect information about you in a variety of ways, including:</p>
             <ul className="list-disc pl-6 space-y-2">
               <li><strong>Personal Data:</strong> Name, email address, and other contact information you voluntarily provide when contacting us or using our services.</li>
@@ -45,7 +54,7 @@ export const PrivacyPolicy: React.FC = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-blue-800 mb-4">3. How We Use Your Information</h2>
+            <h2 className={`text-2xl font-semibold mb-4 ${isDark ? 'text-slate-200' : 'text-blue-800'}`}>3. How We Use Your Information</h2>
             <p className="mb-3">We use the information we collect to:</p>
             <ul className="list-disc pl-6 space-y-2">
               <li>Provide, maintain, and improve our services</li>
@@ -57,7 +66,7 @@ export const PrivacyPolicy: React.FC = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-blue-800 mb-4">4. Data Security</h2>
+            <h2 className={`text-2xl font-semibold mb-4 ${isDark ? 'text-slate-200' : 'text-blue-800'}`}>4. Data Security</h2>
             <p>
               We implement appropriate technical and organizational security measures to protect your
               personal information against unauthorized access, alteration, disclosure, or destruction.
@@ -67,7 +76,7 @@ export const PrivacyPolicy: React.FC = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-blue-800 mb-4">5. Third-Party Services</h2>
+            <h2 className={`text-2xl font-semibold mb-4 ${isDark ? 'text-slate-200' : 'text-blue-800'}`}>5. Third-Party Services</h2>
             <p>
               We may use third-party services that collect, monitor, and analyze data to improve our
               service. These third parties have their own privacy policies addressing how they use such
@@ -76,7 +85,7 @@ export const PrivacyPolicy: React.FC = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-blue-800 mb-4">6. Your Rights</h2>
+            <h2 className={`text-2xl font-semibold mb-4 ${isDark ? 'text-slate-200' : 'text-blue-800'}`}>6. Your Rights</h2>
             <p className="mb-3">Depending on your location, you may have the right to:</p>
             <ul className="list-disc pl-6 space-y-2">
               <li>Access the personal data we hold about you</li>
@@ -88,7 +97,7 @@ export const PrivacyPolicy: React.FC = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-blue-800 mb-4">7. Children's Privacy</h2>
+            <h2 className={`text-2xl font-semibold mb-4 ${isDark ? 'text-slate-200' : 'text-blue-800'}`}>7. Children's Privacy</h2>
             <p>
               Our services are not directed to individuals under the age of 13. We do not knowingly
               collect personal information from children under 13. If we become aware that we have
@@ -97,7 +106,7 @@ export const PrivacyPolicy: React.FC = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-blue-800 mb-4">8. Changes to This Policy</h2>
+            <h2 className={`text-2xl font-semibold mb-4 ${isDark ? 'text-slate-200' : 'text-blue-800'}`}>8. Changes to This Policy</h2>
             <p>
               We may update this Privacy Policy from time to time. We will notify you of any changes by
               posting the new Privacy Policy on this page and updating the "Last updated" date. You are
@@ -106,10 +115,10 @@ export const PrivacyPolicy: React.FC = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-blue-800 mb-4">9. Contact Us</h2>
+            <h2 className={`text-2xl font-semibold mb-4 ${isDark ? 'text-slate-200' : 'text-blue-800'}`}>9. Contact Us</h2>
             <p>
               If you have any questions about this Privacy Policy, please contact us at{' '}
-              <a href="mailto:traceablehealth@gmail.com" className="text-blue-600 hover:text-blue-800 underline">
+              <a href="mailto:traceablehealth@gmail.com" className={`underline ${isDark ? 'text-purple-400 hover:text-purple-300' : 'text-blue-600 hover:text-blue-800'}`}>
                 traceablehealth@gmail.com
               </a>.
             </p>
