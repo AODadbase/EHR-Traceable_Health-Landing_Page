@@ -1,22 +1,24 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { FileSearch, BrainCircuit, Download } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
-const GeometricSphere: React.FC = () => {
+interface GeometricSphereProps {
+  onLongRelease: () => void;
+}
+
+const GeometricSphere: React.FC<GeometricSphereProps> = ({ onLongRelease }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { isDark } = useTheme();
   const isDarkRef = useRef(isDark);
+  const onLongReleaseRef = useRef(onLongRelease);
 
-  // Keep ref in sync without re-initializing canvas
-  useEffect(() => {
-    isDarkRef.current = isDark;
-  }, [isDark]);
+  useEffect(() => { isDarkRef.current = isDark; }, [isDark]);
+  useEffect(() => { onLongReleaseRef.current = onLongRelease; }, [onLongRelease]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -28,12 +30,18 @@ const GeometricSphere: React.FC = () => {
     const particleCount = isMobile ? 60 : 100;
     const connectionDistance = isMobile ? 180 : 300;
     const rotationSpeed = 0.0005;
+    const LONG_HOLD_MS = 10000;
 
-    const mouseRadius = isMobile ? 60 : 90;
-    const mouseForce = 3;
-    let mouseX = -9999;
-    let mouseY = -9999;
-    let mouseActive = false;
+    let mouseX = width / 2;
+    let mouseY = height / 2;
+    let isMouseDown = false;
+    let mouseDownStartTime = 0;
+
+    // 1.0 = normal, 0.25 = fully shrunk, 2.0 = peak expand
+    let dotSizeMultiplier = 1.0;
+    let expandPhase = false;
+    let expandTimer = 0;
+    let lastTimestamp = 0;
 
     let angleX = 0;
     let angleY = 0;
@@ -46,7 +54,6 @@ const GeometricSphere: React.FC = () => {
     }
 
     const points: Point3D[] = [];
-
     for (let i = 0; i < particleCount; i++) {
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos((Math.random() * 2) - 1);
@@ -63,7 +70,10 @@ const GeometricSphere: React.FC = () => {
 
     let animationId: number;
 
-    const animate = () => {
+    const animate = (timestamp: number) => {
+      const dt = lastTimestamp ? Math.min((timestamp - lastTimestamp) / 1000, 0.05) : 0.016;
+      lastTimestamp = timestamp;
+
       ctx.clearRect(0, 0, width, height);
       frameCount++;
 
@@ -74,7 +84,28 @@ const GeometricSphere: React.FC = () => {
       angleY += rotationSpeed;
       angleX += rotationSpeed * 0.5;
 
-      const projectedPoints: {x: number, y: number, z: number}[] = [];
+      // --- dot size multiplier state machine ---
+      if (isMouseDown) {
+        const heldSec = (performance.now() - mouseDownStartTime) / 1000;
+        const t = Math.min(heldSec / 10, 1);
+        dotSizeMultiplier = 1.0 - 0.75 * t; // 1.0 → 0.25 over 10 s
+      } else if (expandPhase) {
+        expandTimer += dt;
+        if (expandTimer < 1.5) {
+          dotSizeMultiplier = 1.0 + (expandTimer / 1.5);       // 1.0 → 2.0 in 1.5 s
+        } else if (expandTimer < 5.5) {
+          dotSizeMultiplier = 2.0 - ((expandTimer - 1.5) / 4.0); // 2.0 → 1.0 in 4 s
+        } else {
+          dotSizeMultiplier = 1.0;
+          expandPhase = false;
+        }
+      } else if (dotSizeMultiplier < 1.0) {
+        // Quick restore after short hold
+        dotSizeMultiplier = Math.min(1.0, dotSizeMultiplier + dt * 3);
+      }
+
+      const radiusBound = expandPhase ? baseRadius * 1.8 : baseRadius;
+      const projectedPoints: { x: number; y: number; z: number }[] = [];
 
       points.forEach(point => {
         point.x += point.vx;
@@ -87,12 +118,12 @@ const GeometricSphere: React.FC = () => {
           point.vz += (Math.random() - 0.5) * 0.05;
         }
 
-        const currentDist = Math.sqrt(point.x**2 + point.y**2 + point.z**2);
-        if (currentDist > baseRadius * 1.2) {
+        const currentDist = Math.sqrt(point.x ** 2 + point.y ** 2 + point.z ** 2);
+        if (currentDist > radiusBound * 1.2) {
           point.vx -= point.x * 0.0005;
           point.vy -= point.y * 0.0005;
           point.vz -= point.z * 0.0005;
-        } else if (currentDist < baseRadius * 0.5) {
+        } else if (currentDist < radiusBound * 0.5) {
           point.vx += point.x * 0.0005;
           point.vy += point.y * 0.0005;
           point.vz += point.z * 0.0005;
@@ -108,27 +139,24 @@ const GeometricSphere: React.FC = () => {
         let x2d = x2 * scale + centerX;
         let y2d = y1 * scale + centerY;
 
-        if (mouseActive) {
-          const mdx = x2d - mouseX;
-          const mdy = y2d - mouseY;
-          const mDist = Math.sqrt(mdx * mdx + mdy * mdy);
-          if (mDist < mouseRadius && mDist > 0) {
-            const force = (1 - mDist / mouseRadius) * mouseForce;
-            const angle = Math.atan2(mdy, mdx);
-            point.dx += Math.cos(angle) * force;
-            point.dy += Math.sin(angle) * force;
-          }
+        // Slow attraction toward mouse on hold
+        if (isMouseDown) {
+          const tdx = mouseX - x2d;
+          const tdy = mouseY - y2d;
+          const angle = Math.atan2(tdy, tdx);
+          point.dx += Math.cos(angle) * 0.2;
+          point.dy += Math.sin(angle) * 0.2;
         }
 
-        point.dx *= 0.85;
-        point.dy *= 0.85;
+        point.dx *= 0.92;
+        point.dy *= 0.92;
         x2d += point.dx;
         y2d += point.dy;
 
         projectedPoints.push({ x: x2d, y: y2d, z: z2 });
       });
 
-      // Draw Connections
+      // Draw connections
       ctx.lineWidth = 1;
       for (let i = 0; i < projectedPoints.length; i++) {
         for (let j = i + 1; j < projectedPoints.length; j++) {
@@ -137,18 +165,14 @@ const GeometricSphere: React.FC = () => {
           const dx = p1.x - p2.x;
           const dy = p1.y - p2.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-
           if (dist < connectionDistance) {
             ctx.beginPath();
             ctx.moveTo(p1.x, p1.y);
             ctx.lineTo(p2.x, p2.y);
             const alpha = 1 - dist / connectionDistance;
-
             if (dark) {
-              // Deep color palette: cycle through purples, magentas, crimsons, deep blues
               const baseHue = ((i + j) * 3 + frameCount * 0.15) % 360;
-              // Remap to darker range: skip greens/yellows, favor 240-360 (blue-purple-magenta-red)
-              const hue = 240 + (baseHue / 360) * 160; // range 240-400 (wraps to 40), deep tones
+              const hue = 240 + (baseHue / 360) * 160;
               ctx.strokeStyle = `hsla(${hue % 360}, 70%, 40%, ${alpha * 0.5})`;
             } else {
               ctx.strokeStyle = `rgba(59, 130, 246, ${alpha * 0.3})`;
@@ -158,13 +182,13 @@ const GeometricSphere: React.FC = () => {
         }
       }
 
-      // Draw Nodes
+      // Draw nodes
       points.forEach((_, i) => {
         const p = projectedPoints[i];
         ctx.beginPath();
-        const size = Math.max(1, (1000 / (1000 + p.z + 500)) * 3);
+        const baseSize = Math.max(0.5, (1000 / (1000 + p.z + 500)) * 3);
+        const size = Math.max(0.3, baseSize * dotSizeMultiplier);
         ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
-
         if (dark) {
           const baseHue = (i * 7 + frameCount * 0.2) % 360;
           const hue = 240 + (baseHue / 360) * 160;
@@ -185,36 +209,90 @@ const GeometricSphere: React.FC = () => {
       }
     };
 
-    const handleMouseMove = (e: MouseEvent) => {
+    const isInHero = (clientX: number, clientY: number) => {
       const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      if (x >= 0 && x <= rect.width && y >= 0 && y <= rect.height) {
-        mouseX = x; mouseY = y; mouseActive = true;
-      } else {
-        mouseActive = false;
+      return clientX >= rect.left && clientX <= rect.right &&
+             clientY >= rect.top  && clientY <= rect.bottom;
+    };
+
+    const getPos = (clientX: number, clientY: number) => {
+      const rect = canvas.getBoundingClientRect();
+      return { x: clientX - rect.left, y: clientY - rect.top };
+    };
+
+    const handleMouseDown = (e: MouseEvent) => {
+      const tag = (e.target as HTMLElement).tagName.toLowerCase();
+      if (['a', 'button', 'input', 'select', 'textarea'].includes(tag)) return;
+      if (!isInHero(e.clientX, e.clientY)) return;
+      const pos = getPos(e.clientX, e.clientY);
+      mouseX = pos.x;
+      mouseY = pos.y;
+      isMouseDown = true;
+      mouseDownStartTime = performance.now();
+      expandPhase = false;
+      expandTimer = 0;
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const pos = getPos(e.clientX, e.clientY);
+      mouseX = pos.x;
+      mouseY = pos.y;
+    };
+
+    const handleMouseUp = () => {
+      if (!isMouseDown) return;
+      const heldMs = performance.now() - mouseDownStartTime;
+      isMouseDown = false;
+      if (heldMs >= LONG_HOLD_MS) {
+        expandPhase = true;
+        expandTimer = 0;
+        points.forEach(p => {
+          const dist = Math.sqrt(p.x ** 2 + p.y ** 2 + p.z ** 2);
+          if (dist > 0) {
+            p.vx += (p.x / dist) * 3;
+            p.vy += (p.y / dist) * 3;
+            p.vz += (p.z / dist) * 3;
+          }
+        });
+        onLongReleaseRef.current?.();
       }
     };
 
-    const handleTouchMove = (e: TouchEvent) => {
-      const rect = canvas.getBoundingClientRect();
+    const handleTouchStart = (e: TouchEvent) => {
       const touch = e.touches[0];
-      mouseX = touch.clientX - rect.left;
-      mouseY = touch.clientY - rect.top;
-      mouseActive = true;
+      const pos = getPos(touch.clientX, touch.clientY);
+      mouseX = pos.x;
+      mouseY = pos.y;
+      isMouseDown = true;
+      mouseDownStartTime = performance.now();
+      expandPhase = false;
+      expandTimer = 0;
     };
 
-    const handleTouchEnd = () => { mouseActive = false; };
+    const handleTouchMove = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      const pos = getPos(touch.clientX, touch.clientY);
+      mouseX = pos.x;
+      mouseY = pos.y;
+    };
 
+    const handleTouchEnd = () => { handleMouseUp(); };
+
+    window.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
     window.addEventListener('touchmove', handleTouchMove, { passive: true });
     window.addEventListener('touchend', handleTouchEnd);
     window.addEventListener('resize', handleResize);
     handleResize();
-    animate();
+    animationId = requestAnimationFrame(animate);
 
     return () => {
+      window.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('touchend', handleTouchEnd);
       window.removeEventListener('resize', handleResize);
@@ -224,13 +302,28 @@ const GeometricSphere: React.FC = () => {
 
   return (
     <div className="absolute inset-0 w-full h-full pointer-events-none">
-       <canvas ref={canvasRef} className="w-full h-full" />
+      <canvas ref={canvasRef} className="w-full h-full" />
     </div>
   );
 };
 
 export const Hero: React.FC = () => {
   const { isDark } = useTheme();
+  const [titleVersion, setTitleVersion] = useState(0); // 0 = original, 1 = alternative
+  const [titleAnim, setTitleAnim] = useState<'none' | 'out' | 'in'>('none');
+
+  const handleLongRelease = useCallback(() => {
+    setTitleAnim('out');
+    setTimeout(() => {
+      setTitleVersion(v => (v + 1) % 2);
+      setTitleAnim('in');
+      setTimeout(() => setTitleAnim('none'), 700);
+    }, 500);
+  }, []);
+
+  const titleClass =
+    titleAnim === 'out' ? 'title-pixel-out' :
+    titleAnim === 'in'  ? 'title-pixel-in'  : '';
 
   return (
     <section id="hero" className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden min-h-[90vh] flex flex-col justify-center scroll-mt-28">
@@ -251,7 +344,7 @@ export const Hero: React.FC = () => {
         )}
       </div>
 
-      <GeometricSphere />
+      <GeometricSphere onLongRelease={handleLongRelease} />
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center text-center">
         <motion.div
@@ -268,30 +361,51 @@ export const Hero: React.FC = () => {
           </span>
         </motion.div>
 
-        <motion.h1
+        {/* Toggleable title */}
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
-          className={`text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 max-w-5xl ${
-            isDark ? 'text-slate-100' : 'text-slate-900'
-          }`}
+          className={`max-w-5xl w-full mb-10 ${titleClass}`}
         >
-          We turn static PDF patient records into
-          <span className={`block mt-2 ${isDark ? 'rainbow-text' : 'text-blue-600'}`}>Searchable, Structured Summaries</span>
-        </motion.h1>
-
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className={`text-lg sm:text-xl mb-10 max-w-2xl leading-relaxed backdrop-blur-sm rounded-xl p-2 ${
-            isDark ? 'text-slate-400 bg-slate-900/30' : 'text-slate-600 bg-white/30'
-          }`}
-        >
-          Patient transfers involve hundreds of pages of unsearchable documents.
-          Our pipeline ingests raw PDFs, analyzes clinical data points, and delivers
-          instant, accurate insights to the bedside.
-        </motion.p>
+          {titleVersion === 0 ? (
+            <h1 className={`text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight ${
+              isDark ? 'text-slate-100' : 'text-slate-900'
+            }`}>
+              We turn static PDF patient records into
+              <span className={`block mt-2 ${isDark ? 'rainbow-text' : 'text-blue-600'}`}>
+                Searchable, Structured Summaries
+              </span>
+            </h1>
+          ) : (
+            <div>
+              <div className={`text-xl sm:text-2xl font-light mb-4 tracking-wide ${
+                isDark ? 'text-slate-400' : 'text-slate-500'
+              }`}>
+                Hundreds of pages. Unsearchable.
+              </div>
+              <div className={`text-5xl sm:text-6xl md:text-7xl font-black mb-4 leading-tight ${
+                isDark ? 'rainbow-text' : 'text-blue-600'
+              }`}>
+                One instant answer.
+              </div>
+              <div className={`text-xl sm:text-2xl font-light mb-10 ${
+                isDark ? 'text-slate-400' : 'text-slate-500'
+              }`}>
+                Clinical intelligence, at the bedside.
+              </div>
+              <div className="flex gap-3 justify-center flex-wrap">
+                {['Searchable records', 'Structured summaries', 'Bedside delivery'].map(tag => (
+                  <span key={tag} className={`px-5 py-2 rounded-full text-sm font-semibold border ${
+                    isDark
+                      ? 'border-slate-600 text-slate-300 bg-slate-800/60'
+                      : 'border-blue-200 text-blue-700 bg-blue-50'
+                  }`}>{tag}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -317,9 +431,9 @@ export const Hero: React.FC = () => {
           className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-20 w-full max-w-5xl relative z-20"
         >
           {[
-            { icon: FileSearch, title: "Unstructured to Structured", desc: "Ingest PDF transfer packets from any hospital system." },
-            { icon: BrainCircuit, title: "Clinical Analysis", desc: "Identify meds, labs, and imaging automatically." },
-            { icon: FileSearch, title: "Smart Search", desc: "Find 'Last MRI report' instantly within the document." },
+            { icon: FileSearch,   title: "Unstructured to Structured", desc: "Ingest PDF transfer packets from any hospital system." },
+            { icon: BrainCircuit, title: "Clinical Analysis",          desc: "Identify meds, labs, and imaging automatically." },
+            { icon: FileSearch,   title: "Smart Search",               desc: "Find 'Last MRI report' instantly within the document." },
           ].map((item, index) => (
             <div key={index} className={`flex flex-col items-center p-6 backdrop-blur-sm border rounded-2xl shadow-sm hover:shadow-md transition-shadow ${
               isDark

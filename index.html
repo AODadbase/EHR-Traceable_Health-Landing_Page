@@ -42,7 +42,7 @@
       }
 
       .dark-mode .animate-text-flow {
-        background: linear-gradient(90deg, #9b1dff, #c026d3, #e11d48, #9b1dff, #4f46e5, #7c3aed, #c026d3, #9b1dff);
+        background: linear-gradient(90deg, #e11d48, #f97316, #eab308, #94a3b8, #06b6d4, #0ea5e9, #94a3b8, #e11d48);
         background-size: 300% auto;
         -webkit-background-clip: text;
         background-clip: text;
@@ -52,12 +52,29 @@
 
       /* Rainbow text utility for headlines */
       .rainbow-text {
-        background: linear-gradient(90deg, #9b1dff, #c026d3, #e11d48, #9b1dff, #4f46e5, #7c3aed, #c026d3, #9b1dff);
+        background: linear-gradient(90deg, #e11d48, #f97316, #eab308, #94a3b8, #06b6d4, #0ea5e9, #94a3b8, #e11d48);
         background-size: 300% auto;
         -webkit-background-clip: text;
         background-clip: text;
         color: transparent;
         animation: rainbow-shimmer 20s linear infinite;
+      }
+
+      /* Title pixel dissolve transition */
+      @keyframes pixel-out {
+        0%   { filter: blur(0px);  opacity: 1; transform: scale(1);    }
+        100% { filter: blur(14px); opacity: 0; transform: scale(0.96); }
+      }
+      @keyframes pixel-in {
+        0%   { filter: blur(14px); opacity: 0; transform: scale(1.04); }
+        100% { filter: blur(0px);  opacity: 1; transform: scale(1);    }
+      }
+      .title-pixel-out {
+        animation: pixel-out 0.5s ease-out forwards;
+        pointer-events: none;
+      }
+      .title-pixel-in {
+        animation: pixel-in 0.7s ease-out forwards;
       }
     </style>
   <script type="importmap">

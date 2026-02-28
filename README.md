@@ -1,6 +1,6 @@
 # Traceable Health - Landing Page
 
-A modern, accessible, and responsive landing page for Traceable Health, an innovative Electronic Health Record (EHR) system that leverages blockchain technology to provide secure, transparent, and patient-centered healthcare data management.
+A modern, accessible, and responsive landing page for Traceable Health, an innovative 1Electronic Health Record (EHR) system that leverages blockchain technology to provide secure, transparent, and patient-centered healthcare data management.
 
 ## 🌟 Features
 
