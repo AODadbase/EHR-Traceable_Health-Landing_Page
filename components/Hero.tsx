@@ -43,6 +43,7 @@ const GeometricSphere: React.FC<GeometricSphereProps> = ({ onLongRelease }) => {
     let rotationMult   = 1.0;   // 1→0 on hold, restores on release
     let expandPhase    = false;
     let expandTimer    = 0;
+    let settleTimer    = 0; // seconds of post-expand gentle damping
     let lastTimestamp  = 0;
 
     let angleX    = 0;
@@ -94,15 +95,18 @@ const GeometricSphere: React.FC<GeometricSphereProps> = ({ onLongRelease }) => {
       } else if (expandPhase) {
         expandTimer += dt;
         if (expandTimer < 2.5) {
-          sizeMultiplier = 1.0 + (expandTimer / 2.5);         // 1→2 in 2.5 s (gentle)
+          sizeMultiplier = 1.0 + (expandTimer / 2.5);         // 1→2 in 2.5 s
         } else if (expandTimer < 8.5) {
-          sizeMultiplier = 2.0 - ((expandTimer - 2.5) / 6.0); // 2→1 in 6 s (slow settle)
+          sizeMultiplier = 2.0 - ((expandTimer - 2.5) / 6.0); // 2→1 in 6 s
         } else {
           sizeMultiplier = 1.0;
           expandPhase    = false;
+          settleTimer    = 3.0; // 3 s of post-expand settling
         }
-        rotationMult = Math.min(1.0, rotationMult + dt * 0.3);
+        rotationMult = Math.min(1.0, rotationMult + dt * 0.25);
       } else {
+        // Post-expand settle: extra damping while sphere re-coalesces
+        if (settleTimer > 0) settleTimer = Math.max(0, settleTimer - dt);
         // Quick restore after short hold
         if (sizeMultiplier < 1.0) {
           sizeMultiplier = Math.min(1.0, sizeMultiplier + dt * 2.5);
@@ -121,16 +125,16 @@ const GeometricSphere: React.FC<GeometricSphereProps> = ({ onLongRelease }) => {
       const projectedPoints: { x: number; y: number; z: number }[] = [];
 
       points.forEach(point => {
-        // During hold: damp 3D velocity so sphere "freezes" while 2D pull takes over
-        // During expand: gentle damping so burst doesn't pop wildly
+        // Velocity damping by phase
         if (isMouseDown) {
-          point.vx *= 0.97;
-          point.vy *= 0.97;
-          point.vz *= 0.97;
+          // Freeze sphere so 2D attraction dominates
+          point.vx *= 0.97; point.vy *= 0.97; point.vz *= 0.97;
         } else if (expandPhase) {
-          point.vx *= 0.96;
-          point.vy *= 0.96;
-          point.vz *= 0.96;
+          // Heavy damping during bloom — prevents popping
+          point.vx *= 0.93; point.vy *= 0.93; point.vz *= 0.93;
+        } else if (settleTimer > 0) {
+          // Gentle extra damping while re-coalescing
+          point.vx *= 0.95; point.vy *= 0.95; point.vz *= 0.95;
         }
 
         point.x += point.vx;
@@ -226,30 +230,47 @@ const GeometricSphere: React.FC<GeometricSphereProps> = ({ onLongRelease }) => {
         ctx.fill();
       });
 
-      // ── Hold progress ring (so user knows hold is registering) ──
+      // ── Hold progress ring ──
       if (isMouseDown) {
-        const heldSec  = (performance.now() - mouseDownStartTime) / 1000;
-        const progress = Math.min(heldSec / 10, 1);
-        const ringR    = 28;
+        const heldSec       = (performance.now() - mouseDownStartTime) / 1000;
+        const progress      = Math.min(heldSec / 5, 1); // matches LONG_HOLD_MS = 5 s
+        const ringR         = 28;
+        const progressAngle = progress * Math.PI * 2;
 
         // background track
         ctx.beginPath();
         ctx.arc(mouseX, mouseY, ringR, 0, Math.PI * 2);
-        ctx.strokeStyle = dark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)';
+        ctx.strokeStyle = dark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
         ctx.lineWidth   = 2.5;
         ctx.stroke();
 
-        // progress arc
-        ctx.beginPath();
-        ctx.arc(mouseX, mouseY, ringR, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2);
-        ctx.strokeStyle = dark ? 'rgba(255,255,255,0.85)' : 'rgba(37,99,235,0.85)';
-        ctx.lineWidth   = 2.5;
-        ctx.stroke();
+        if (dark) {
+          // Colorful flowing rainbow arc — draw as segments
+          const segments = 32;
+          for (let s = 0; s < segments; s++) {
+            const sa = -Math.PI / 2 + (s / segments) * progressAngle;
+            const ea = -Math.PI / 2 + ((s + 1) / segments) * progressAngle;
+            if (sa >= ea) continue;
+            const hue = ((s / segments) * 300 + frameCount * 3) % 360;
+            ctx.beginPath();
+            ctx.arc(mouseX, mouseY, ringR, sa, ea);
+            ctx.strokeStyle = `hsla(${hue}, 100%, 65%, 0.9)`;
+            ctx.lineWidth   = 2.5;
+            ctx.stroke();
+          }
+        } else {
+          // Solid blue arc in light mode
+          ctx.beginPath();
+          ctx.arc(mouseX, mouseY, ringR, -Math.PI / 2, -Math.PI / 2 + progressAngle);
+          ctx.strokeStyle = 'rgba(37,99,235,0.85)';
+          ctx.lineWidth   = 2.5;
+          ctx.stroke();
+        }
 
         // center dot
         ctx.beginPath();
         ctx.arc(mouseX, mouseY, 4, 0, Math.PI * 2);
-        ctx.fillStyle = dark ? 'rgba(255,255,255,0.7)' : 'rgba(37,99,235,0.7)';
+        ctx.fillStyle = dark ? `hsla(${(frameCount * 3) % 360},100%,65%,0.85)` : 'rgba(37,99,235,0.7)';
         ctx.fill();
       }
 
@@ -306,30 +327,14 @@ const GeometricSphere: React.FC<GeometricSphereProps> = ({ onLongRelease }) => {
       isMouseDown  = false;
 
       if (heldMs >= LONG_HOLD_MS) {
-        // Long hold: expand burst + title change
+        // Long hold: begin bloom — no velocity burst (radius expanding drives it naturally)
         expandPhase = true;
         expandTimer = 0;
-        points.forEach(p => {
-          const dist = Math.sqrt(p.x ** 2 + p.y ** 2 + p.z ** 2);
-          if (dist > 0) {
-            p.vx += (p.x / dist) * 1.5;
-            p.vy += (p.y / dist) * 1.5;
-            p.vz += (p.z / dist) * 1.5;
-          }
-          p.dx = 0; p.dy = 0; // clear 2D offsets
-        });
+        settleTimer = 0;
+        // Let dx/dy decay via normal damping (no hard reset = no pop)
         onLongReleaseRef.current?.();
       } else {
-        // Short hold: spring back — give each particle an outward nudge
-        points.forEach(p => {
-          const dist = Math.sqrt(p.x ** 2 + p.y ** 2 + p.z ** 2);
-          if (dist > 0) {
-            p.vx += (p.x / dist) * 1.5;
-            p.vy += (p.y / dist) * 1.5;
-            p.vz += (p.z / dist) * 1.5;
-          }
-          p.dx *= 0.3; p.dy *= 0.3; // quickly damp 2D offsets
-        });
+        // Short hold: let dx/dy decay naturally, no impulse needed
       }
     };
 
