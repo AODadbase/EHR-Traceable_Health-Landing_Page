@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { FileText, Mail, Eye, EyeOff } from 'lucide-react';
+import { FileText, Mail, Sun, Moon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -155,9 +155,9 @@ export const Header: React.FC = () => {
                 ? 'bg-purple-600/20 text-purple-400 hover:bg-purple-600/30'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
-            aria-label={isDark ? 'Disable eye protection mode' : 'Enable eye protection mode'}
+            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
           >
-            {isDark ? <EyeOff size={18} /> : <Eye size={18} />}
+            {isDark ? <Sun size={18} /> : <Moon size={18} />}
           </button>
 
           <motion.a

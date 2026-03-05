@@ -94,10 +94,15 @@
     <script>
       // Prevent flash of wrong theme on page load
       (function() {
-        var theme = localStorage.getItem('th-eye-protection');
-        if (theme === 'dark') {
-          document.documentElement.classList.add('dark-mode');
+        var saved = localStorage.getItem('th-eye-protection');
+        var isDark;
+        if (saved === 'dark' || saved === 'light') {
+          isDark = saved === 'dark';
+        } else {
+          var hour = new Date().getHours();
+          isDark = !(hour >= 6 && hour < 18);
         }
+        if (isDark) document.documentElement.classList.add('dark-mode');
       })();
     </script>
     <div id="root"></div>

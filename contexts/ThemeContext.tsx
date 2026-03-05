@@ -17,7 +17,10 @@ export const useTheme = () => useContext(ThemeContext);
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('th-eye-protection');
-    return saved === 'dark' ? 'dark' : 'light';
+    if (saved === 'dark' || saved === 'light') return saved;
+    // No saved preference — use time of day: 6 am–6 pm = light, otherwise dark
+    const hour = new Date().getHours();
+    return hour >= 6 && hour < 18 ? 'light' : 'dark';
   });
 
   const isDark = theme === 'dark';
