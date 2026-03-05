@@ -20,7 +20,7 @@ const teamMembers = [
     name: "Keshav Trikha",
     role: "UIUC CS",
     bio: "Data Engineering Lead. Architecting the backend infrastructure and implementing advanced AI categorization logic.",
-    image: "/images/keshav.png"
+    image: "/images/keshav.jpg"
   },
   {
     name: "Arjun Marwah",
@@ -32,7 +32,7 @@ const teamMembers = [
     name: "Junseong Lee",
     role: "UIUC CS",
     bio: "Human Interaction Design & AI Research Engineer. Bridging the gap between complex algorithms and intuitive user experiences.",
-    image: "/images/junseong.png"
+    image: "/images/junseong.jpg"
   }
 ];
 
